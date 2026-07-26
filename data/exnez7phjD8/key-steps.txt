@@ -1,0 +1,32 @@
+Step-by-step instructions for making Punjabi Samosas
+seconds: 0.0, step_description: Mix 2 cups maida (around 250 gms) with 1/2 spoon salt and 1/4 spoon ajwain
+seconds: 4.86, step_description: Add 4-5 table spoons of ghee and mix well to give a nice crust on top
+seconds: 10.74, step_description: Check the consistency and add water little by little until dough is little hard
+seconds: 136.88, step_description: Mix 1 table spoon oil, 1/2 spoon hing, 1 spoon jeera, 1 spoon dhaniya seeds, and 1/2 spoon saunf
+seconds: 162.66, step_description: Add 1 table spoon ginger and mix well
+seconds: 173.72, step_description: Add 2 green chillies finely cut and mix well
+seconds: 180.98, step_description: Add 1/2 cup green mutter (use either frozen or boiled) and mix for around 1-2 mins
+seconds: 195.32, step_description: Lower the gas flame and add 1/2 spoon red chilly powder, 1/2 spoon dhaniya powder, 1/2 spoon jeera powder, 1/2 spoon amchur powder, 1/2 spoon garam masala, and 1/4 spoon black pepper powder
+seconds: 219.16, step_description: Add little salt to taste and sprinkle water on low flame
+seconds: 245.88, step_description: Add 4-5 boiled potatoes, a little turmeric, and mix well
+seconds: 284.66, step_description: Mix in fresh coriander or dhaniya
+seconds: 312.9, step_description: Keep the filling aside
+seconds: 343.34, step_description: Take one portion of dough and flatten it on top
+seconds: 355.64, step_description: Apply little oil on platform and do not make it very thin
+seconds: 397.02, step_description: Cut from middle to form oval shape
+seconds: 430.5, step_description: Apply water on top section and overlap it from top
+seconds: 443.52, step_description: Press it on top with hands to ensure it is stuck well
+seconds: 481.54, step_description: Make a cone shape and fill in the masala
+seconds: 494.82, step_description: Press it on top with hands again
+seconds: 503.66, step_description: Put water on all sides and make a fold
+seconds: 516.1, step_description: Start pressing it from sides to ensure it is closed well
+seconds: 547.48, step_description: Ensure it is in perfect shape
+seconds: 562.38, step_description: Make the other samosas ready in similar fashion
+seconds: 593.62, step_description: Do it for rest in similar way
+seconds: 617.64, step_description: Keep it in fridge to make samosas very crispy for 25-30 mins
+seconds: 629.16, step_description: Samosas will set well
+seconds: 646.82, step_description: Heat Oil in a wok on medium flame and lower the gas flame once heated
+seconds: 662.6, step_description: Put samosas 1 at a time and fry until golden brown color
+seconds: 725.34, step_description: Let it fry from all sides properly, will take 8-9 mins for 1 batch frying
+seconds: 759.74, step_description: After 9 mins, samosas have become even brown on all sides
+seconds: 784.96, step_description: Remove it on kitchen towel and fry remaining batch as well
