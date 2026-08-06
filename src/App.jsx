@@ -1,9 +1,200 @@
-import { useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import './App.css'
+
+const GUEST_SESSION_API_URL = 'https://localhost:8027/api/guest-session'
+const RECIPE_API_URL = 'https://localhost:8027/api/recipe-conversation'
+const RECIPE_CONVERSATION_LIST_API_URL = 'https://localhost:8027/api/recipe-conversation-list'
+const RECIPE_IMAGE_API_URL = 'https://localhost:8027/api/recipe-image'
 
 function App() {
   const [authMode, setAuthMode] = useState(null)
+  const [guestSession, setGuestSession] = useState(null)
+  const [guestError, setGuestError] = useState(null)
+  const newRecipe = { id: 0, title: 'New Recipe' }
+  const [recipeConversationList, setRecipeConversationList] = useState([newRecipe])
+  const [activeConversation, setActiveConversation] = useState(recipeConversationList[0].id)
+  const [chatMessages, setChatMessages] = useState([
+    {
+      id: `msg-${Date.now()}`,
+      frm: 'ai',
+      mtype: 'text',
+      content: {'text': 'Hi! Send me a YouTube cooking video link or click a recipe to get started.'}
+    },
+  ])
+  const [conversationId, setConversationId] = useState(null)
+  const [isLoadingRecipe, setIsLoadingRecipe] = useState(false)
+  const [recipeError, setRecipeError] = useState(null)
   const isSignUp = authMode === 'signup'
+  const recipeConversation = new Map() // Map to store conversation state for each recipe
+
+  const getRecipeConversation = async (conversationId) => {
+    setActiveConversation(conversationId)
+    setRecipeError(null)
+    setIsLoadingRecipe(true)
+
+    try {
+      if (recipeConversation.has(conversationId)) {
+        const messages = recipeConversation.get(conversationId)
+        setChatMessages(messages)
+        setIsLoadingRecipe(false)
+        return
+      }else{
+        const recipeConversationAPIUrl = `${RECIPE_API_URL}/${conversationId}`
+        const response = await fetch(recipeConversationAPIUrl, {
+          method: 'GET',
+          credentials: 'include'
+        })
+
+        if (!response.ok) {
+          const text = await response.text()
+          throw new Error(text || `Request failed with status ${response.status}`)
+        }
+        const data = await response.json()
+        const messages = data.messages.messages.map((message, index) => ({id: `msg-${Date.now()}-${index}`, ...message}))
+        if (messages.length === 0) {
+          setChatMessages([
+            {
+              id: `api-error-${Date.now()}`,
+              frm: 'ai',
+              mtype: 'text',
+              content: {'text': 'I did not receive a recipe from the server. Please try again.'},
+            },
+          ])
+        } else {
+          setChatMessages(messages)
+          recipeConversation.set(conversationId, messages) // Store the conversation state
+        }
+      }
+    } catch (error) {
+      const message = error?.message || 'Unable to reach recipe API.'
+      setRecipeError(message)
+      setChatMessages([
+        {
+          id: `api-error-${Date.now()}`,
+          frm: 'ai',
+          mtype: 'error',
+          content: { description: message },
+        },
+      ])
+    } finally {
+      setIsLoadingRecipe(false)
+    }
+  }
+
+  const updateRecipeConversation = async (text) => {
+    setRecipeError(null)
+    setIsLoadingRecipe(true)
+
+    try {
+      const recipeConversationAPIUrl = `${RECIPE_API_URL}/${conversationId}`
+      const response = await fetch(recipeConversationAPIUrl, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ "frm": "user", "mtype": "text", "content": { "text": text } }),
+      })
+
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(text || `Request failed with status ${response.status}`)
+      }
+      const data = await response.json()
+      const messages = data.messages.map((message, index) => ({id: `msg-${Date.now()}-${index}`, ...message}))  
+      if (messages.length === 0) {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: `api-error-${Date.now()}`,
+            frm: 'ai',
+            mtype: 'text',
+            content: {'text': 'I did not receive a recipe from the server. Please try again.'},
+          },
+        ])
+      } else {
+        setChatMessages((prev) => [...prev, ...messages])
+        recipeConversation.get(conversationId)?.push(...messages) // Update the conversation state
+      }
+    } catch (error) {
+      const message = error?.message || 'Unable to reach recipe API.'
+      setRecipeError(message)
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: `api-error-${Date.now()}`,
+          frm: 'ai',
+          mtype: 'error',
+          content: { description: message },
+        },
+      ])
+    } finally {
+      setIsLoadingRecipe(false)
+    }
+  }
+
+  const inputRef = useRef(null);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const inputValue = inputRef.current.value;
+    
+    if (!inputValue.trim()) return;
+
+    updateRecipeConversation(inputValue);
+    inputRef.current.value = ''; // Clear input
+  };
+
+  useEffect(() => {
+    const createGuestSession = async () => {
+      try {
+        const response = await fetch(GUEST_SESSION_API_URL, {
+          method: 'POST',
+          credentials: 'include',
+        })
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`)
+        }
+
+        const data = await response.json()
+        if (data.status === "success") {
+          setGuestSession({"username": "GUEST"})
+        } else {
+          setGuestSession({"username": "NO-GUEST"})
+        }
+      } catch (error) {
+        console.error('Failed to create guest session', error)
+        setGuestError(error.message)
+      }
+    }
+
+    createGuestSession()
+  }, [])
+
+  useEffect(() => {
+    const getRecipeConversationList = async () => {
+      try {
+        const response = await fetch(RECIPE_CONVERSATION_LIST_API_URL, {
+          method: 'GET',
+          credentials: 'include',
+        })
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`)
+        }
+
+        const data = await response.json()
+        if (response.ok && data.recipe_conversations && data.recipe_conversations.length > 0) {
+          setRecipeConversationList([newRecipe, ...data.recipe_conversations])
+        } else {
+          setRecipeConversationList([newRecipe])
+        }
+        console.log('recipeConversationList', recipeConversationList)
+      } catch (error) {
+        console.error('Failed to get conversation list', error)
+      }
+    }
+
+    getRecipeConversationList()
+  }, [guestSession])
 
   return (
     <div className="app-shell">
@@ -16,6 +207,11 @@ function App() {
           </div>
         </div>
         <div className="top-actions">
+          {guestSession?.username && (
+            <div className="guest-pill" title={guestSession.username}>
+              <span className="guest-pill-label">{guestSession.username}</span>
+            </div>
+          )}
           <button type="button" className="button sign-in-button" onClick={() => setAuthMode('signin')}>
             Sign in
           </button>
@@ -68,12 +264,17 @@ function App() {
               <span className="nav-badge">+</span>
             </div>
             <nav className="nav-list">
-              <button className="nav-item active">New Recipe</button>
-              <button className="nav-item">Fried Rice Recipe</button>
-              <button className="nav-item">Olive Pasta Recipe</button>
-              <button className="nav-item">Margherita Pizza Recipe</button>
-              <button className="nav-item">Veg Burger Recipe</button>
-              <button className="nav-item">Veg Biryani Recipe</button>
+              {recipeConversationList.map((conversation) => (
+                <button
+                  key={`recipe-conversation-${conversation.id}`}
+                  type="button"
+                  className={`nav-item ${activeConversation === conversation.id ? 'active' : ''}`}
+                  onClick={() => getRecipeConversation(conversation.id)}
+                  disabled={isLoadingRecipe}
+                >
+                  {conversation.title}
+                </button>
+              ))}
             </nav>
           </div>
 
@@ -120,152 +321,54 @@ function App() {
             </div>
 
             <div className="chat-window">
-              <div className="message bot">
-                <div className="message-bubble">
-                  <p>Hi! 👋</p>
-                  <p>Send me a YouTube cooking video link and I'll generate the recipe for you.</p>
-                </div>
-                <span className="message-time">10:30 AM</span>
-              </div>
-
-              <div className="message user">
-                <div className="message-bubble user-bubble">
-                  <p>https://www.youtube.com/watch?v=dQw4w9WgXcQ</p>
-                </div>
-                <span className="message-time">10:31 AM</span>
-              </div>
-
-              <div className="message bot">
-                <div className="message-bubble">
-                  <p>Great! Let me analyze this video and extract the recipe for you...</p>
-                  <div className="loading-dots" aria-hidden="true">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+              {chatMessages.map((message) => (
+                <div key={message.id} className={`message ${message.frm === 'user' ? 'user' : 'bot'}`}>
+                  <div className={`message-bubble ${message.frm === 'user' ? 'user-bubble' : ''}`}>
+                    {message.frm === 'user' ? (<p>{message.content.text}</p>) : message.mtype === 'recipe' ? (
+                        <p>
+                        <p>{message.content.description}</p>  
+                        {message.content.steps?.length > 0 && (
+                          <ol className="recipe-steps">
+                            {message.content.steps.map((step, index) => (
+                              <li key={index}>
+                                {step.description}
+                                <p><img src={`${RECIPE_IMAGE_API_URL}/${step.image_url}`} alt={`Step ${index + 1} Image`} /></p>
+                              </li>
+                            ))}
+                          </ol>
+                        )}
+                        </p>
+                    ) : (
+                      <p>{message.content.text}</p>
+                    )}
                   </div>
+                  <span className="message-time">
+                    {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
-                <span className="message-time">10:31 AM</span>
-              </div>
+              ))}
 
-              <div className="message bot">
-                <div className="message-bubble">
-                  <p>Done! 🎉</p>
-                  <p>Here's the recipe I generated from the video.</p>
-                  <button type="button" className="view-recipe-button">View Recipe</button>
-                </div>
-                <span className="message-time">10:32 AM</span>
-              </div>
-
-              <div className="message bot">
-                <div className="message-bubble">
-                  <p>Done! 🎉</p>
-                  <p>Step-by-step instructions for making Punjabi Samosas</p>
-                  Mix 2 cups maida (around 250 gms) with 1/2 spoon salt and 1/4 spoon ajwain<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_0.0s.jpg" className="recipe-image" /><br></br>
-                  Add 4-5 table spoons of ghee and mix well to give a nice crust on top<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_4.86s.jpg" className="recipe-image" /><br></br>
-                  Check the consistency and add water little by little until dough is little hard<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_10.74s.jpg" className="recipe-image" /><br></br>
-                  Mix 1 table spoon oil, 1/2 spoon hing, 1 spoon jeera, 1 spoon dhaniya seeds, and 1/2 spoon saunf<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_136.88s.jpg" className="recipe-image" /><br></br>
-                  Add 1 table spoon ginger and mix well<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_162.66s.jpg" className="recipe-image" /><br></br>
-                  Add 2 green chillies finely cut and mix well<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_173.72s.jpg" className="recipe-image" /><br></br>
-                  Add 1/2 cup green mutter (use either frozen or boiled) and mix for around 1-2 mins<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_180.98s.jpg" className="recipe-image" /><br></br>
-                </div>
-                <span className="message-time">10:32 AM</span>
-              </div>
-
-              <div className="message bot">
-                <div className="message-bubble">
-                  <p>Let me improve the recipe by filtering out the faroff images...</p>
-                  <div className="loading-dots" aria-hidden="true">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                </div>
-                <span className="message-time">10:31 AM</span>
-              </div>
-
-              <div className="message bot">
-                <div className="message-bubble">
-                  <p>Removing Far off images with ML Classifier Service</p>
-                  <button type="button" className="view-recipe-button">View Improved Recipe</button>
-                </div>
-                <span className="message-time">10:32 AM</span>
-              </div>
-              <div className="message bot">
-                <div className="message-bubble">
-                  <p>Images filtered out by ML Classifier</p>
-                  Mix 2 cups maida (around 250 gms) with 1/2 spoon salt and 1/4 spoon ajwain<br></br>
-                 <img src=".\data\exnez7phjD8\key_frames\frame_at_0.0s.jpg" className="recipe-image" /><br></br>
-                  Add 4-5 table spoons of ghee and mix well to give a nice crust on top<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_4.86s.jpg" className="recipe-image" /><br></br>
-                  Check the consistency and add water little by little until dough is little hard<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_10.74s.jpg" className="recipe-image" /><br></br>
-                  Mix 1 table spoon oil, 1/2 spoon hing, 1 spoon jeera, 1 spoon dhaniya seeds, and 1/2 spoon saunf<br></br>
-                </div>
-                <span className="message-time">10:32 AM</span>
+              {isLoadingRecipe && (
                 <div className="message bot">
-                <div className="message-bubble">
-                  <p>Improved Recipe to make Punjabi Samosas</p>
-                  Mix 2 cups maida (around 250 gms) with 1/2 spoon salt and 1/4 spoon ajwain<br></br>
-                  Add 4-5 table spoons of ghee and mix well to give a nice crust on top<br></br>
-                  Check the consistency and add water little by little until dough is little hard<br></br>
-                  Mix 1 table spoon oil, 1/2 spoon hing, 1 spoon jeera, 1 spoon dhaniya seeds, and 1/2 spoon saunf<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_136.88s.jpg" className="recipe-image" /><br></br>
-                  Add 1 table spoon ginger and mix well<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_162.66s.jpg" className="recipe-image" /><br></br>
-                  Add 2 green chillies finely cut and mix well<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_173.72s.jpg" className="recipe-image" /><br></br>
-                  Add 1/2 cup green mutter (use either frozen or boiled) and mix for around 1-2 mins<br></br>
-                  <img src=".\data\exnez7phjD8\key_frames\frame_at_180.98s.jpg" className="recipe-image" /><br></br>
+                  <div className="message-bubble">
+                    <p>Analyzing the recipe request...</p>
+                    <div className="loading-dots" aria-hidden="true">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  </div>
+                  <span className="message-time">
+                    {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
-                <span className="message-time">10:32 AM</span>
-              </div>
-              <div className="message bot">
-                <div className="message-bubble">
-                  <p>Would you like to see the list of ingredients?</p>
-                </div>
-                <span className="message-time">10:31 AM</span>
-              </div>
-              <div className="message user">
-                <div className="message-bubble user-bubble">
-                  <p>Yes, I would like to see the list of ingredients</p>
-                </div>
-                <span className="message-time">10:33 AM</span>
-              </div>
-              <div className="message bot">
-                <div className="message-bubble">
-                  <p>The list of ingredients is as follows:</p>
-                  <ul>
-                    <li>2 cups maida (around 250 gms)</li>
-                    <li>1/2 spoon salt</li>
-                    <li>1/4 spoon ajwain</li>
-                    <li>4-5 table spoons of ghee</li>
-                    <li>Water (as needed)</li>
-                    <li>1 table spoon oil</li>
-                    <li>1/2 spoon hing</li>
-                    <li>1 spoon jeera</li>
-                    <li>1 spoon dhaniya seeds</li>
-                    <li>1/2 spoon saunf</li>
-                    <li>1 table spoon ginger</li>
-                    <li>2 green chillies (finely cut)</li>
-                    <li>1/2 cup green mutter (frozen or boiled)</li>
-                  </ul>
-                </div>
-                <span className="message-time">10:34 AM</span>
-              </div>
+              )}
             </div>
           </div>
-           <form className="chat-form">
-              <input type="text" placeholder="Your message..." aria-label="YouTube link" />
+            <form className="chat-form" onSubmit={handleSubmit}>
+              <input type="text" placeholder="Your message..." aria-label="Your message" />
               <button type="submit">Send</button>
             </form>
-          </div>
         </main>
       </div>
     </div>
