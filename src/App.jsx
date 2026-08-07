@@ -62,7 +62,11 @@ function App() {
           ])
         } else {
           setChatMessages(messages)
-          recipeConversation.set(conversationId, messages) // Store the conversation state
+          setActiveConversation(data.id)
+          if (conversationId === 0) {
+            setRecipeConversationList([{"id": data.id, "title": data.title + " " + data.id }, ...recipeConversationList])
+          }
+          recipeConversation.set(activeConversation, messages) // Store the conversation state
         }
       }
     } catch (error) {
@@ -86,14 +90,18 @@ function App() {
     setIsLoadingRecipe(true)
 
     try {
-      const recipeConversationAPIUrl = `${RECIPE_API_URL}/${conversationId}`
+      const recipeConversationAPIUrl = `${RECIPE_API_URL}/${activeConversation}`
+      const message = {"frm": "user", "mtype": "text", "content": { "text": text }}
+      setChatMessages((prev) => [
+          ...prev,
+          message,
+      ])
       const response = await fetch(recipeConversationAPIUrl, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ "frm": "user", "mtype": "text", "content": { "text": text } }),
+        body: JSON.stringify({"messages": [message]}),
       })
-
       if (!response.ok) {
         const text = await response.text()
         throw new Error(text || `Request failed with status ${response.status}`)
@@ -112,7 +120,7 @@ function App() {
         ])
       } else {
         setChatMessages((prev) => [...prev, ...messages])
-        recipeConversation.get(conversationId)?.push(...messages) // Update the conversation state
+        recipeConversation.get(activeConversation)?.push(...messages) // Update the conversation state
       }
     } catch (error) {
       const message = error?.message || 'Unable to reach recipe API.'
@@ -180,10 +188,11 @@ function App() {
         if (!response.ok) {
           throw new Error(`Request failed with status ${response.status}`)
         }
-
         const data = await response.json()
         if (response.ok && data.recipe_conversations && data.recipe_conversations.length > 0) {
-          setRecipeConversationList([newRecipe, ...data.recipe_conversations])
+          const recipe_conversation_list = data.recipe_conversations.map((conversation) => 
+          ({ id: conversation.id, title: conversation.title + " " + conversation.id }))
+          setRecipeConversationList([newRecipe, ...recipe_conversation_list])
         } else {
           setRecipeConversationList([newRecipe])
         }
@@ -366,7 +375,7 @@ function App() {
             </div>
           </div>
             <form className="chat-form" onSubmit={handleSubmit}>
-              <input type="text" placeholder="Your message..." aria-label="Your message" />
+              <input ref={inputRef} type="text" placeholder="Your message..." aria-label="Your message" />
               <button type="submit">Send</button>
             </form>
         </main>
