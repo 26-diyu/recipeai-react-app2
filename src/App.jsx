@@ -107,7 +107,17 @@ function App() {
         throw new Error(text || `Request failed with status ${response.status}`)
       }
       const data = await response.json()
-      const messages = data.messages.map((message, index) => ({id: `msg-${Date.now()}-${index}`, ...message}))  
+      if (data.title && data.title !== '') {
+        const updatedRecipeConversationList = recipeConversationList.map((conversation) => {
+          if (conversation.id === activeConversation) {
+            return { ...conversation, title: data.title }
+          }
+          return conversation
+        })
+        console.log('updatedRecipeConversationList', updatedRecipeConversationList)
+        setRecipeConversationList(updatedRecipeConversationList)
+      }
+      const messages = data.messages.messages.map((message, index) => ({id: `msg-${Date.now()}-${index}`, ...message}))  
       if (messages.length === 0) {
         setChatMessages((prev) => [
           ...prev,
