@@ -11,8 +11,8 @@ function App() {
   const [guestSession, setGuestSession] = useState(null)
   const [guestError, setGuestError] = useState(null)
   const newRecipe = { id: 0, title: 'New Recipe' }
-  const [recipeConversationList, setRecipeConversationList] = useState([newRecipe])
-  const [activeConversation, setActiveConversation] = useState(recipeConversationList[0].id)
+  const [recipeConversationList, setRecipeConversationList] = useState([])
+  const [activeConversation, setActiveConversation] = useState(0)
   const [chatMessages, setChatMessages] = useState([
     {
       id: `msg-${Date.now()}`,
@@ -192,9 +192,13 @@ function App() {
         if (response.ok && data.recipe_conversations && data.recipe_conversations.length > 0) {
           const recipe_conversation_list = data.recipe_conversations.map((conversation) => 
           ({ id: conversation.id, title: conversation.title + " " + conversation.id }))
-          setRecipeConversationList([newRecipe, ...recipe_conversation_list])
+          setRecipeConversationList(recipe_conversation_list)
+          setActiveConversation(recipe_conversation_list[0].id)
+          getRecipeConversation(recipe_conversation_list[0].id)
         } else {
-          setRecipeConversationList([newRecipe])
+          setRecipeConversationList([])
+          setActiveConversation(0)
+          getRecipeConversation(0)
         }
         console.log('recipeConversationList', recipeConversationList)
       } catch (error) {
@@ -204,6 +208,48 @@ function App() {
 
     getRecipeConversationList()
   }, [guestSession])
+
+  const renderMessageContent = (message) => {
+    if (message.frm === 'user') {
+      return <p>{message.content.text}</p>;
+    } else if (message.mtype === 'recipe') {
+      return (
+        <div>
+          <p>{message.content.description}</p>
+          {message.content.steps?.length > 0 && (
+            <ol className="recipe-steps">
+              {message.content.steps.map((step, index) => (
+                <li key={index}>
+                  {step.description}
+                  <p>
+                    <img
+                      src={`${RECIPE_IMAGE_API_URL}/${step.image_url}`}
+                      alt={`Step ${index + 1} Image`}
+                    />
+                  </p>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      );
+  } else if (message.mtype === 'ingredient') {
+    return (
+      <div>
+        <p>The list of ingredients:</p>
+        {message.content.ingredients?.length > 0 && (
+          <ul className="recipe-ingredients">
+            {message.content.ingredients.map((ingredient, index) => (
+              <li key={index}>{ingredient}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }else {
+    return <p>{message.content.text}</p>;
+  }
+  };
 
   return (
     <div className="app-shell">
@@ -270,7 +316,13 @@ function App() {
           <div className="panel-card sidebar-panel">
             <div className="nav-header">
               <h2>New Recipe</h2>
-              <span className="nav-badge">+</span>
+              <span className="nav-badge"><button
+              key="recipe-conversation-0"
+              type="button"
+              className={`nav-item 'active'`}
+              onClick={() => getRecipeConversation(0)}>
+              +
+            </button></span>
             </div>
             <nav className="nav-list">
               {recipeConversationList.map((conversation) => (
@@ -333,23 +385,7 @@ function App() {
               {chatMessages.map((message) => (
                 <div key={message.id} className={`message ${message.frm === 'user' ? 'user' : 'bot'}`}>
                   <div className={`message-bubble ${message.frm === 'user' ? 'user-bubble' : ''}`}>
-                    {message.frm === 'user' ? (<p>{message.content.text}</p>) : message.mtype === 'recipe' ? (
-                        <p>
-                        <p>{message.content.description}</p>  
-                        {message.content.steps?.length > 0 && (
-                          <ol className="recipe-steps">
-                            {message.content.steps.map((step, index) => (
-                              <li key={index}>
-                                {step.description}
-                                <p><img src={`${RECIPE_IMAGE_API_URL}/${step.image_url}`} alt={`Step ${index + 1} Image`} /></p>
-                              </li>
-                            ))}
-                          </ol>
-                        )}
-                        </p>
-                    ) : (
-                      <p>{message.content.text}</p>
-                    )}
+                    {renderMessageContent(message)}
                   </div>
                   <span className="message-time">
                     {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

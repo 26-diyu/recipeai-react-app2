@@ -1,5 +1,9 @@
 .app-shell {
   min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: #f4f5f7;
   color: #1f1d2a;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -11,6 +15,29 @@
   align-items: center;
   gap: 16px;
   padding: 24px 32px 0;
+}
+
+/* Sidebar panel: keep header visible and make nav-list scroll inside the panel */
+.panel-card.sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding-bottom: 12px;
+}
+
+.panel-card.sidebar-panel .nav-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  max-height: none;
+  padding-right: 4px;
+}
+
+.panel-card.sidebar-panel .steps-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  max-height: none;
+  padding-right: 8px;
 }
 
 .brand {
@@ -124,6 +151,9 @@
   grid-template-columns: 280px minmax(340px, 1.35fr);
   gap: 24px;
   padding: 24px 32px 32px;
+  flex: 1 1 auto;
+  min-height: 0; /* allow children to shrink and scroll internally */
+  overflow: hidden;
 }
 
 .sidebar,
@@ -132,11 +162,15 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-height: 0;
 }
 
 .chat-panel {
   min-height: 0;
   grid-column: 2 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .recipe-panel {
@@ -149,6 +183,7 @@
   border-radius: 28px;
   box-shadow: 0 20px 60px rgba(75, 70, 123, 0.08);
   padding: 24px;
+  min-height: 0;
 }
 
 .sidebar-panel h3,
@@ -268,9 +303,8 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  min-height: 720px;
-  height: calc(100vh - 160px);
-  max-height: calc(100vh - 120px);
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .panel-header {
@@ -298,7 +332,7 @@
   gap: 18px;
   padding: 12px 0;
   overflow-y: auto;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
 }
 
@@ -378,7 +412,10 @@
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
-  margin-top: auto;
+  margin: 0;
+  padding: 12px 0 0;
+  align-items: center;
+  background: transparent;
 }
 
 .chat-form input {
