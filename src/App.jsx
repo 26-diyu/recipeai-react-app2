@@ -50,7 +50,7 @@ function App() {
           throw new Error(text || `Request failed with status ${response.status}`)
         }
         const data = await response.json()
-        const messages = data.messages.messages.map((message, index) => ({id: `msg-${Date.now()}-${index}`, ...message}))
+        const messages = data.messages.map((message, index) => ({id: `msg-${Date.now()}-${index}`, ...message}))
         if (messages.length === 0) {
           setChatMessages([
             {
@@ -117,7 +117,7 @@ function App() {
         console.log('updatedRecipeConversationList', updatedRecipeConversationList)
         setRecipeConversationList(updatedRecipeConversationList)
       }
-      const messages = data.messages.messages.map((message, index) => ({id: `msg-${Date.now()}-${index}`, ...message}))  
+      const messages = data.messages.map((message, index) => ({id: `msg-${Date.now()}-${index}`, ...message}))  
       if (messages.length === 0) {
         setChatMessages((prev) => [
           ...prev,
@@ -374,11 +374,6 @@ function App() {
                 </div>
               </li>
             </ol>
-          </div>
-
-          <div className="panel-card tip-card">
-            <strong>Tip</strong>
-            <p>Use videos with clear cooking instructions for best results.</p>
           </div>
         </aside>
 
