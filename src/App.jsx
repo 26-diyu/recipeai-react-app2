@@ -200,8 +200,10 @@ function App() {
         }
         const data = await response.json()
         if (response.ok && data.recipe_conversations && data.recipe_conversations.length > 0) {
-          const recipe_conversation_list = data.recipe_conversations.map((conversation) => 
-          ({ id: conversation.id, title: conversation.title + " " + conversation.id }))
+          const recipe_conversation_list = data.recipe_conversations.map((conversation) => (
+            (conversation.title === "Recipe Conversation") ? 
+            { id: conversation.id, title: conversation.title + " " + conversation.id } : { id: conversation.id, title: conversation.title }
+          ))
           setRecipeConversationList(recipe_conversation_list)
           setActiveConversation(recipe_conversation_list[0].id)
           getRecipeConversation(recipe_conversation_list[0].id)
@@ -246,7 +248,7 @@ function App() {
   } else if (message.mtype === 'ingredient') {
     return (
       <div>
-        <p>The list of ingredients:</p>
+        <p><strong>The list of ingredients</strong></p>
         {message.content.ingredients?.length > 0 && (
           <ul className="recipe-ingredients">
             {message.content.ingredients.map((ingredient, index) => (
