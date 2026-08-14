@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import './App.css'
+import { RecipeContent } from './RecipeContent'
+import { TextMessageTimer } from './TextMessageTimer'
 
 const GUEST_SESSION_API_URL = 'https://localhost:8027/api/guest-session'
 const RECIPE_API_URL = 'https://localhost:8027/api/recipe-conversation'
@@ -91,7 +93,7 @@ function App() {
 
     try {
       const recipeConversationAPIUrl = `${RECIPE_API_URL}/${activeConversation}`
-      const message = {"frm": "user", "mtype": "text", "content": { "text": text }}
+      const message = {id: `msg-${Date.now()}`, "frm": "user", "mtype": "text", "content": { "text": text }}
       setChatMessages((prev) => [
           ...prev,
           message,
@@ -227,25 +229,10 @@ function App() {
     } else if (message.mtype === 'recipe') {
       return (
         <div>
-          <p>{message.content.description}</p>
-          {message.content.steps?.length > 0 && (
-            <ol className="recipe-steps">
-              {message.content.steps.map((step, index) => (
-                <li key={index}>
-                  {step.description}
-                  <p>
-                    <img
-                      src={`${RECIPE_IMAGE_API_URL}/${step.image_url}`}
-                      alt={`Step ${index + 1} Image`}
-                    />
-                  </p>
-                </li>
-              ))}
-            </ol>
-          )}
+          <RecipeContent recipe_conversation_id={activeConversation} message={message} />
         </div>
       );
-  } else if (message.mtype === 'ingredient') {
+    } else if (message.mtype === 'ingredient') {
     return (
       <div>
         <p><strong>The list of ingredients</strong></p>
@@ -403,7 +390,7 @@ function App() {
               {isLoadingRecipe && (
                 <div className="message bot">
                   <div className="message-bubble">
-                    <p>Analyzing the recipe request...</p>
+                    <p><TextMessageTimer text_message="Analyzing the recipe request..." /></p>
                     <div className="loading-dots" aria-hidden="true">
                       <span></span>
                       <span></span>
