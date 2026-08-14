@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import generatedImage from './assets/generating.png';
+import generatedImage from './assets/generating2.png';
+import './RecipeContent.css';
 
 const RECIPE_IMAGE_API_URL = 'https://localhost:8027/api/recipe-image'
 
@@ -49,7 +50,7 @@ export function RecipeContent({ recipe_conversation_id, message }) {
                                         src={`${RECIPE_IMAGE_API_URL}/${image.image_path}`}
                                         alt={`Step ${index + 1} Image`}
                                     />) : (
-                                    <img src={generatedImage} alt="Generating..."/>
+                                    <img src={generatedImage} alt="Generating..." class="thin-border"/>
                                 )}
                             </p>
                         </li>
