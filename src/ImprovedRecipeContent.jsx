@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import generatedImage from './assets/generating2.png';
+import toBeReplacedImage from './assets/to-be-replaced.png';
 import './RecipeContent.css';
 
 const RECIPE_IMAGE_API_URL = 'https://localhost:8027/api/recipe-image'
 
-export function RecipeContent({ recipe_conversation_id, message }) {
+export function ImprovedRecipeContent({ recipe_conversation_id, message }) {
     const [images, setImages] = useState(() =>
         Array.from({ length: message.content.steps?.length || 0 }, (_, i) => ({
             timestamp: message.content.steps?.[i]?.timestamp || 0.0,
@@ -13,28 +13,6 @@ export function RecipeContent({ recipe_conversation_id, message }) {
             image_status: message.content.steps?.[i]?.image_status || 'extracting'
         }))
     );
-
-    useEffect(() => {
-        const sse = new EventSource(
-            `https://localhost:8027/api/generate-batch/stream-concurrent?recipe_conversation_id=${recipe_conversation_id}&message_id=${message.mid}`,
-            {
-                withCredentials: true
-            }
-        );
-
-        sse.addEventListener('image_update', (event) => {
-            const data = JSON.parse(event.data);
-            setImages((prev) =>
-                prev.map((slot, index) =>
-                    slot.image_path === data.image_path ? { ...slot, ...data } : slot
-                )
-            );
-        });
-
-        sse.addEventListener('batch_complete', () => sse.close());
-
-        return () => sse.close();
-    }, [recipe_conversation_id, message.mid]);
 
     return (
         <div>
@@ -49,9 +27,11 @@ export function RecipeContent({ recipe_conversation_id, message }) {
                                     <img
                                         src={`${RECIPE_IMAGE_API_URL}/${image.image_path}`}
                                         alt={`Step ${index + 1} Image`}
-                                    />) : (
+                                    />) : ((image.image_status === 'extracting') ? (
                                     <img src={generatedImage} alt="Generating..." class="thin-border" width="640" height="360"/>
-                                    )
+                                    ) : (
+                                    <img src={toBeReplacedImage} alt="To Be Replaced" class="thin-border" width="640" height="360"/>
+                                    ))
                                 }
                             </p>
                         </li>

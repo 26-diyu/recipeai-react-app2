@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import './App.css'
 import { RecipeContent } from './RecipeContent'
+import { ImprovedRecipeContent } from './ImprovedRecipeContent'
 import { TextMessageTimer } from './TextMessageTimer'
 
 const GUEST_SESSION_API_URL = 'https://localhost:8027/api/guest-session'
@@ -230,6 +231,12 @@ function App() {
       return (
         <div>
           <RecipeContent recipe_conversation_id={activeConversation} message={message} />
+        </div>
+      );
+    } else if (message.mtype === 'improved-recipe') {
+      return (
+        <div>
+          <ImprovedRecipeContent recipe_conversation_id={activeConversation} message={message} />
         </div>
       );
     } else if (message.mtype === 'ingredient') {
