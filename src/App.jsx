@@ -11,9 +11,12 @@ const RECIPE_IMAGE_API_URL = 'https://localhost:8027/api/recipe-image'
 
 function App() {
   const [authMode, setAuthMode] = useState(null)
-  const [guestSession, setGuestSession] = useState(null)
-  const [guestError, setGuestError] = useState(null)
+  const [guestUserSession, setGuestUserSession] = useState({"username": "guest"})
+  const [guestUserError, setGuestUserError] = useState(null)
+  const [isGuestUser, setIsGuestUser] = useState(true)
+  const [regUserSession, setRegUserSession] = useState(null)
   const newRecipe = { id: 0, title: 'New Recipe' }
+  const [signedInUser, setSignedInUser] = useState(null)
   const [recipeConversationList, setRecipeConversationList] = useState([])
   const [activeConversation, setActiveConversation] = useState(0)
   const [chatMessages, setChatMessages] = useState([
@@ -27,6 +30,17 @@ function App() {
   const [conversationId, setConversationId] = useState(null)
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false)
   const [recipeError, setRecipeError] = useState(null)
+  // Form inputs state
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // UI status state
+  const [signInLoading, setSignInLoading] = useState(false);
+  const [signInError, setSignInError] = useState('');
+  const [signUpLoading, setSignUpLoading] = useState(false);
+  const [signUpError, setSignUpError] = useState('');
+
   const isSignUp = authMode === 'signup'
   const recipeConversation = new Map() // Map to store conversation state for each recipe
 
@@ -164,7 +178,10 @@ function App() {
   };
 
   useEffect(() => {
-    const createGuestSession = async () => {
+    const createGuestUserSession = async () => {
+      if (!isGuestUser) {
+        return; // Skip if not a guest user
+      }
       try {
         const response = await fetch(GUEST_SESSION_API_URL, {
           method: 'POST',
@@ -177,18 +194,19 @@ function App() {
 
         const data = await response.json()
         if (data.status === "success") {
-          setGuestSession({"username": "GUEST"})
+          setGuestUserSession({"username": "guest"})
+          setSignedInUser("guest")
         } else {
-          setGuestSession({"username": "NO-GUEST"})
+          setGuestUserSession({"username": "no-guest"})
         }
       } catch (error) {
         console.error('Failed to create guest session', error)
-        setGuestError(error.message)
+        setGuestUserError(error.message)
       }
     }
 
-    createGuestSession()
-  }, [])
+    createGuestUserSession()
+  }, [isGuestUser]) // Re-run when isGuestUser changes
 
   useEffect(() => {
     const getRecipeConversationList = async () => {
@@ -222,7 +240,7 @@ function App() {
     }
 
     getRecipeConversationList()
-  }, [guestSession])
+  }, [signedInUser]) // Re-run when signedInUser changes
 
   const renderMessageContent = (message) => {
     if (message.frm === 'user') {
@@ -257,6 +275,92 @@ function App() {
   }
   };
 
+  // Helper to clear form state on modal close
+  const closeModal = () => {
+    setAuthMode(null);
+    setUsername('');
+    setPassword('');
+    setConfirmPassword('');
+    setSignInError('');
+  };
+  
+  const handleSignInSubmit = async (event) => {
+    event.preventDefault();
+    setSignInError('');
+    setSignInLoading(true);
+
+    try {
+      const endpoint = 'https://localhost:8027/api/create-session';
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Authentication failed');
+      }
+
+      // 1. Update session state with returned or submitted username
+      setGuestUserSession(null); // Clear guest session if any
+      setIsGuestUser(false); // Set isGuestUser to false since a registered user is signing in
+      setRegUserSession({ username: data.username || username });
+      setSignedInUser(data.username || username);
+
+      // 2. Close modal and clear inputs
+      closeModal();
+    } catch (err) {
+      console.error('Sign in failed:', err.message);
+      setSignInError(err.message);
+    } finally {
+      setSignInLoading(false);
+    }
+  };
+
+  const handleSignUpSubmit = async (event) => {
+    event.preventDefault();
+    setSignUpError('Yet to be implemented');
+  }
+
+  const handleSignOut = async (event) => {
+    event.preventDefault();
+    //setSignoutError(''); // TO-DO: Think about where to show signout error message in the UI
+    //setSignoutLoading(true);
+
+    try {
+      const endpoint = 'https://localhost:8027/api/delete-session';
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Authentication failed');
+      }
+
+      // 1. Update session state with returned or submitted username
+      setRegUserSession(null); // Clear registered user session
+      setGuestUserSession({"username": "guest"}); // Set guest session back to default
+      setIsGuestUser(true); // Set isGuestUser to true
+
+      // 2. Close modal and clear inputs
+      closeModal();
+    } catch (err) {
+      console.error('Sign out failed:', err.message);
+      //setSignoutError(err.message); // TO-DO: Think about where to show signout error message in the UI
+    } finally {
+      //setSignoutLoading(false); // TO-DO: Think about where to show signout loading state in the UI
+    }
+  };
+
   return (
     <div className="app-shell">
       <header className="top-bar">
@@ -268,53 +372,132 @@ function App() {
           </div>
         </div>
         <div className="top-actions">
-          {guestSession?.username && (
-            <div className="guest-pill" title={guestSession.username}>
-              <span className="guest-pill-label">{guestSession.username}</span>
-            </div>
+          {(isGuestUser && guestUserSession?.username) ? (
+            <>
+              <div className="guest-pill" title={guestUserSession.username}>
+                <span className="guest-pill-label">{guestUserSession.username}</span>
+              </div>
+              <button type="button" className="button sign-in-button" onClick={() => setAuthMode('signin')}>
+                Sign in
+              </button>
+              <button type="button" className="button sign-up-button" onClick={() => setAuthMode('signup')}>
+                Sign up
+              </button>
+            </>
+          ):(
+            regUserSession?.username ? (
+              /* Render username and sign out option when authenticated */
+              <>
+                <div className="guest-pill" title={regUserSession.username}>
+                  <span className="guest-pill-label">{regUserSession.username}</span>
+                </div>
+                <button type="button" className="button" onClick={handleSignOut}>
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="button sign-in-button" onClick={() => setAuthMode('signin')}>
+                  Sign in
+                </button>
+                <button type="button" className="button sign-up-button" onClick={() => setAuthMode('signup')}>
+                  Sign up
+                </button>
+              </>)
           )}
-          <button type="button" className="button sign-in-button" onClick={() => setAuthMode('signin')}>
-            Sign in
-          </button>
-          <button type="button" className="button sign-up-button" onClick={() => setAuthMode('signup')}>
-            Sign up
-          </button>
+          
         </div>
       </header>
 
-      {authMode && (
-        <div className="modal-backdrop" onClick={() => setAuthMode(null)}>
+      {
+      authMode && (isSignUp ? (
+        <div className="modal-backdrop" onClick={closeModal}>
           <div className="modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <div>
-                <h3>{isSignUp ? 'Create account' : 'Sign in'}</h3>
-                <p>{isSignUp ? 'Enter your username and password to get started.' : 'Enter your username and password to continue.'}</p>
+                <h3>Create account</h3>
+                <p>Enter your username and password to get started.</p>
               </div>
               <button type="button" className="modal-close" onClick={() => setAuthMode(null)}>
                 ×
               </button>
             </div>
-            <form className="signin-form" onSubmit={(event) => event.preventDefault()}>
+            <form className="signin-form" onSubmit={handleSignUpSubmit}>
+              {signUpError && <div className="error-message">{signUpError}</div>}
               <label>
                 Username
-                <input type="text" placeholder="Username" />
+                <input 
+                  type="text" 
+                  placeholder="Username" 
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
               </label>
               <label>
                 Password
-                <input type="password" placeholder="Password" />
+                <input 
+                  type="password" 
+                  placeholder="Password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
               </label>
-              {isSignUp && (
-                <label>
+              <label>
                   Re-enter Password
-                  <input type="password" placeholder="Confirm Password" />
-                </label>
-              )}
-              <button type="submit" className="button">
-                {isSignUp ? 'Sign up' : 'Sign in'}
+                  <input 
+                    type="password" 
+                    placeholder="Confirm Password" 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required/>
+              </label>
+              <button type="submit" className="button" disabled={signUpLoading}>
+                {signUpLoading ? 'Processing...' : 'Sign up'}
               </button>
             </form>
           </div>
         </div>
+      ):(<div className="modal-backdrop" onClick={closeModal}>
+          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h3>Sign in</h3>
+                <p>Enter your username and password to continue.</p>
+              </div>
+              <button type="button" className="modal-close" onClick={() => setAuthMode(null)}>
+                ×
+              </button>
+            </div>
+            <form className="signin-form" onSubmit={handleSignInSubmit}>
+              {signInError && <div className="error-message">{signInError}</div>}
+              <label>
+                Username
+                <input 
+                  type="text" 
+                  placeholder="Username" 
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                Password
+                <input 
+                  type="password" 
+                  placeholder="Password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </label>
+              <button type="submit" className="button" disabled={signInLoading}>
+                {signInLoading ? 'Processing...' : 'Sign in'}
+              </button>
+            </form>
+          </div>
+        </div>)
       )}
 
       <div className="page-grid">

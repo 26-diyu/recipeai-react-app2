@@ -28,9 +28,9 @@ export function ImprovedRecipeContent({ recipe_conversation_id, message }) {
                                         src={`${RECIPE_IMAGE_API_URL}/${image.image_path}`}
                                         alt={`Step ${index + 1} Image`}
                                     />) : ((image.image_status === 'extracting') ? (
-                                    <img src={generatedImage} alt="Generating..." class="thin-border" width="640" height="360"/>
+                                    <img src={generatedImage} alt="Generating..." className="thin-border" width="640" height="360"/>
                                     ) : (
-                                    <img src={toBeReplacedImage} alt="To Be Replaced" class="thin-border" width="640" height="360"/>
+                                    <img src={toBeReplacedImage} alt="To Be Replaced" className="thin-border" width="640" height="360"/>
                                     ))
                                 }
                             </p>

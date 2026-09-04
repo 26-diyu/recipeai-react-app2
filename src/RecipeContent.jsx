@@ -50,7 +50,7 @@ export function RecipeContent({ recipe_conversation_id, message }) {
                                         src={`${RECIPE_IMAGE_API_URL}/${image.image_path}`}
                                         alt={`Step ${index + 1} Image`}
                                     />) : (
-                                    <img src={generatedImage} alt="Generating..." class="thin-border" width="640" height="360"/>
+                                    <img src={generatedImage} alt="Generating..." className="thin-border" width="640" height="360"/>
                                     )
                                 }
                             </p>
