@@ -209,7 +209,7 @@ function App() {
   }, [isGuestUser]) // Re-run when isGuestUser changes
 
   useEffect(() => {
-    const getRecipeConversationList = async () => {
+    const fetchRecipeConversationList = async () => {
       try {
         const response = await fetch(RECIPE_CONVERSATION_LIST_API_URL, {
           method: 'GET',
@@ -233,14 +233,17 @@ function App() {
           setActiveConversation(0)
           getRecipeConversation(0)
         }
-        console.log('recipeConversationList', recipeConversationList)
       } catch (error) {
         console.error('Failed to get conversation list', error)
       }
     }
 
-    getRecipeConversationList()
+    fetchRecipeConversationList()
   }, [signedInUser]) // Re-run when signedInUser changes
+
+  useEffect(() => {
+    console.log('Updated recipeConversationList:', recipeConversationList)
+  }, [recipeConversationList])
 
   const renderMessageContent = (message) => {
     if (message.frm === 'user') {
@@ -276,12 +279,17 @@ function App() {
   };
 
   // Helper to clear form state on modal close
-  const closeModal = () => {
+  const closeModalSignIn = () => {
     setAuthMode(null);
     setUsername('');
     setPassword('');
-    setConfirmPassword('');
     setSignInError('');
+  };
+
+  const closeModalSignUp = () => {
+    setUsername('');
+    setPassword('');
+    setConfirmPassword('');
   };
   
   const handleSignInSubmit = async (event) => {
@@ -312,7 +320,7 @@ function App() {
       setSignedInUser(data.username || username);
 
       // 2. Close modal and clear inputs
-      closeModal();
+      closeModalSignIn();
     } catch (err) {
       console.error('Sign in failed:', err.message);
       setSignInError(err.message);
@@ -323,7 +331,38 @@ function App() {
 
   const handleSignUpSubmit = async (event) => {
     event.preventDefault();
-    setSignUpError('Yet to be implemented');
+    setSignUpError('');
+    setSignUpLoading(true);
+
+    try {
+      if (password !== confirmPassword) {
+        setSignUpError('Passwords do not match. Please try again.');
+      }else{
+        const endpoint = 'https://localhost:8027/api/create-user';
+        
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setSignUpError(data.message || 'Sign up failed');
+        }else{
+          setSignUpError('Sign up successful. Please sign in.');
+        }
+      }
+      // 2. Close modal and clear inputs
+      closeModalSignUp();
+    } catch (err) {
+      console.error('Sign up failed:', err.message);
+      setSignUpError('Sign up failed. Please try again.');
+    } finally {
+      setSignUpLoading(false);
+    }
   }
 
   const handleSignOut = async (event) => {
@@ -352,7 +391,7 @@ function App() {
       setIsGuestUser(true); // Set isGuestUser to true
 
       // 2. Close modal and clear inputs
-      closeModal();
+      closeModalSignIn();
     } catch (err) {
       console.error('Sign out failed:', err.message);
       //setSignoutError(err.message); // TO-DO: Think about where to show signout error message in the UI
@@ -411,7 +450,7 @@ function App() {
 
       {
       authMode && (isSignUp ? (
-        <div className="modal-backdrop" onClick={closeModal}>
+        <div className="modal-backdrop" onClick={closeModalSignIn}>
           <div className="modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <div>
@@ -459,7 +498,7 @@ function App() {
             </form>
           </div>
         </div>
-      ):(<div className="modal-backdrop" onClick={closeModal}>
+      ):(<div className="modal-backdrop" onClick={closeModalSignIn}>
           <div className="modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <div>

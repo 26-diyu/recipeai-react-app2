@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import toBeReplacedImage from './assets/to-be-replaced.png';
+import generatedImage from './assets/generating.png';
 import './RecipeContent.css';
 
 const RECIPE_IMAGE_API_URL = 'https://localhost:8027/api/recipe-image'
